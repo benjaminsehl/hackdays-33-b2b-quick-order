@@ -237,7 +237,7 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
       />
       <div className="h-2" />
       <table className="w-full">
-        <thead className="sticky z-30 h-12 border-b border-primary/20 top-24 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
+        <thead className="sticky top-0 z-30 h-12 border-b border-primary/20 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
