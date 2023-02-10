@@ -2,6 +2,7 @@ import {Form, useLoaderData} from '@remix-run/react';
 import {flattenConnection} from '@shopify/hydrogen';
 import type {
   CollectionConnection,
+  Product,
   ProductConnection,
 } from '@shopify/hydrogen/storefront-api-types';
 import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
@@ -76,7 +77,7 @@ export default function () {
       ) : (
         <Section>
           {products?.nodes &&
-            products?.nodes.map((product) => (
+            products?.nodes.map((product: Product) => (
               <ProductBulkOrderForm
                 key={product.id}
                 product={product}
