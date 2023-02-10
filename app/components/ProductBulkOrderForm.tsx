@@ -155,13 +155,12 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
           <AddToCartButton
             lines={[
               {
-                quantity: Number(row.quantity),
+                quantity: Number(row?.quantity || 0),
                 merchandiseId: row.id,
               },
             ]}
-            disabled={!row.quantity}
             variant="secondary"
-            className="mt-2 transition disabled:cursor-not-allowed focus:outline-none focus:border-primary"
+            className="mt-2 transition focus:outline-none focus:border-primary"
           >
             <Text as="span" className="flex items-center justify-center gap-2">
               Add to Cart
@@ -228,60 +227,74 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
   // }, [table.getState().columnFilters[0]?.id]);
 
   return (
-    <div>
-      <DebouncedInput
-        value={globalFilter ?? ''}
-        onChange={(value) => setGlobalFilter(String(value))}
-        className="w-full p-2 my-4 transition border rounded font-lg bg-contrast focus:outline-none focus:border-black placeholder:text-primary/60"
-        placeholder="Search variants..."
-      />
-      <div className="h-2" />
-      <table className="w-full">
-        <thead className="sticky top-0 z-30 h-12 border-b border-primary/20 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <th key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder ? null : (
-                      <>
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                        {/* {header.column.getCanFilter() ? (
+    <>
+      <div className="pr-6">
+        <DebouncedInput
+          value={globalFilter ?? ''}
+          onChange={(value) => setGlobalFilter(String(value))}
+          className="w-full p-2 my-4 transition border rounded font-lg bg-contrast focus:outline-none focus:border-black placeholder:text-primary/60"
+          placeholder="Search variants..."
+        />
+      </div>
+      <div className="w-full pr-6 overflow-x-scroll ">
+        <table className="w-full min-w-max">
+          <thead className="sticky top-0 z-30 h-12 border-b border-primary/20 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header, i) => {
+                  return (
+                    <th
+                      className={
+                        i + 1 === headerGroup.headers.length ? '' : 'pr-6'
+                      }
+                      key={header.id}
+                      colSpan={header.colSpan}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <>
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {/* {header.column.getCanFilter() ? (
                           <div>
                             <Filter column={header.column} table={table} />
                           </div>
                         ) : null} */}
-                      </>
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => {
-            return (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => {
-                  return (
-                    <td key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
+                        </>
                       )}
-                    </td>
+                    </th>
                   );
                 })}
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              return (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell, i) => {
+                    return (
+                      <td
+                        className={
+                          i + 1 === row.getVisibleCells().length ? '' : 'pr-6'
+                        }
+                        key={cell.id}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -436,18 +449,8 @@ export function ProductBulkOrderForm({
     cardLabel = 'New';
   }
 
-  const productAnalytics: ShopifyAnalyticsProduct = {
-    productGid: product.id,
-    variantGid: firstVariant.id,
-    name: product.title,
-    variantName: firstVariant.title,
-    brand: product.vendor,
-    price: firstVariant.price.amount,
-    quantity: 1,
-  };
-
   return (
-    <div className="flex flex-col mb-8">
+    <div className="flex flex-col w-full mb-8">
       <div className={clsx('flex gap-6 items-center', className)}>
         <div className="w-20 border rounded overflow-clip aspect-square bg-primary/5">
           {image && (
@@ -471,7 +474,7 @@ export function ProductBulkOrderForm({
             className="w-full overflow-hidden whitespace-nowrap text-ellipsis "
             as="h3"
           >
-            {product.title} - {product?.variants?.nodes.length} options
+            {product.title}
           </Text>
           <div className="flex items-center gap-4">
             <Text className="flex gap-4">
@@ -483,10 +486,13 @@ export function ProductBulkOrderForm({
                 />
               )}
             </Text>
+            <Text className="opacity-50">
+              {product?.variants?.nodes.length} options
+            </Text>
           </div>
         </div>
       </div>
-      <section>
+      <section className="w-full">
         <Table data={localData} setData={setData} />
       </section>
 
