@@ -20,6 +20,8 @@
     "@shopify/cli-hydrogen": "^4.0.3",
     "@shopify/hydrogen": "^2023.1.2",
     "@shopify/remix-oxygen": "^1.0.2",
+    "@tanstack/match-sorter-utils": "^8.7.6",
+    "@tanstack/react-table": "^8.7.9",
     "clsx": "^1.2.1",
     "concurrently": "^7.5.0",
     "cross-env": "^7.0.3",
