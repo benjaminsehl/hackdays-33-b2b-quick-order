@@ -75,7 +75,7 @@ export default function () {
           </Suspense> */}
         </Section>
       ) : (
-        <section className="flex flex-col w-full gap-4 pl-6 border-none md:gap-8 md:p-8 lg:p-12">
+        <section className="flex flex-col w-full gap-4 border-none md:gap-8 md:p-8 lg:p-12">
           {products?.nodes &&
             products?.nodes.map((product: Product) => (
               <ProductBulkOrderForm

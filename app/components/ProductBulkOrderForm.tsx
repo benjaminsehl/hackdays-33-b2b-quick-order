@@ -228,7 +228,7 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
 
   return (
     <>
-      <div className="pr-6">
+      <div className="px-6 md:px-0">
         <DebouncedInput
           value={globalFilter ?? ''}
           onChange={(value) => setGlobalFilter(String(value))}
@@ -236,7 +236,7 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
           placeholder="Search variants..."
         />
       </div>
-      <div className="w-full pr-6 overflow-x-scroll ">
+      <div className="w-full px-6 overflow-x-scroll md:px-0 ">
         <table className="w-full min-w-max">
           <thead className="sticky top-0 z-30 h-12 border-b border-primary/20 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -452,7 +452,7 @@ export function ProductBulkOrderForm({
   return (
     <div className="flex flex-col w-full mb-8">
       <div className={clsx('flex gap-6 items-center', className)}>
-        <div className="w-20 border rounded overflow-clip aspect-square bg-primary/5">
+        <div className="w-20 ml-6 border rounded md:ml-0 overflow-clip aspect-square bg-primary/5">
           {image && (
             <Image
               className="aspect-[1/1] w-full object-cover fadeIn"
