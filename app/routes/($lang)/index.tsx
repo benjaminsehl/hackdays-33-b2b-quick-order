@@ -23,7 +23,7 @@ export default function () {
         <Form method="get" className="relative flex w-full text-heading">
           <Input
             defaultValue={searchTerm}
-            placeholder="Search for a product…"
+            placeholder="Search for a snowboard…"
             type="search"
             variant="search"
             name="q"
