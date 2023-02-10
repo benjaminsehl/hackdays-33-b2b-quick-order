@@ -20,13 +20,17 @@ export default function () {
   return (
     <>
       <header className="px-6 py-24 md:px-8 lg:px-12">
-        <Form method="get" className="relative flex w-full text-heading">
+        <Form
+          method="get"
+          className="relative flex w-full text-lead md:text-heading"
+        >
           <Input
             defaultValue={searchTerm}
             placeholder="Search for a snowboard…"
             type="search"
             variant="search"
             name="q"
+            autofocus
           />
           <button className="absolute right-0 py-2" type="submit">
             Go
