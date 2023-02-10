@@ -51,7 +51,7 @@ export function Layout({
           {children}
         </main>
       </div>
-      <Footer menu={layout?.footerMenu} />
+      {/* <Footer menu={layout?.footerMenu} /> */}
     </>
   );
 }
@@ -82,7 +82,7 @@ function Header({title, menu}: {title: string; menu?: EnhancedMenu}) {
   return (
     <>
       <CartDrawer isOpen={isCartOpen} onClose={closeCart} />
-      {menu && (
+      {/* {menu && (
         <MenuDrawer isOpen={isMenuOpen} onClose={closeMenu} menu={menu} />
       )}
       <DesktopHeader
@@ -96,7 +96,7 @@ function Header({title, menu}: {title: string; menu?: EnhancedMenu}) {
         title={title}
         openCart={openCart}
         openMenu={openMenu}
-      />
+      /> */}
     </>
   );
 }

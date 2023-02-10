@@ -1,273 +1,231 @@
-import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
-import {Suspense} from 'react';
-import {Await, useLoaderData} from '@remix-run/react';
-import {ProductSwimlane, FeaturedCollections, Hero} from '~/components';
-import {MEDIA_FRAGMENT, PRODUCT_CARD_FRAGMENT} from '~/data/fragments';
-import {getHeroPlaceholder} from '~/lib/placeholders';
+import {Form, useLoaderData} from '@remix-run/react';
+import {flattenConnection} from '@shopify/hydrogen';
 import type {
   CollectionConnection,
-  Metafield,
+  Product,
   ProductConnection,
 } from '@shopify/hydrogen/storefront-api-types';
-import {AnalyticsPageType} from '@shopify/hydrogen';
+import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
+import invariant from 'tiny-invariant';
+import {Input, Section} from '~/components';
+import {ProductBulkOrderForm} from '~/components/ProductBulkOrderForm';
+import {PAGINATION_SIZE} from '~/lib/const';
+import {fetchCustomerPricing} from '~/lib/fetchCustomerPricing';
 
-interface HomeSeoData {
-  shop: {
-    name: string;
-    description: string;
-  };
-}
-
-export interface CollectionHero {
-  byline: Metafield;
-  cta: Metafield;
-  handle: string;
-  heading: Metafield;
-  height?: 'full';
-  loading?: 'eager' | 'lazy';
-  spread: Metafield;
-  spreadSecondary: Metafield;
-  top?: boolean;
-}
-
-export async function loader({params, context}: LoaderArgs) {
-  const {language, country} = context.storefront.i18n;
-
-  if (
-    params.lang &&
-    params.lang.toLowerCase() !== `${language}-${country}`.toLowerCase()
-  ) {
-    // If the lang URL param is defined, yet we still are on `EN-US`
-    // the the lang param must be invalid, send to the 404 page
-    throw new Response(null, {status: 404});
-  }
-
-  const {shop, hero} = await context.storefront.query<{
-    hero: CollectionHero;
-    shop: HomeSeoData;
-  }>(HOMEPAGE_SEO_QUERY, {
-    variables: {handle: 'freestyle'},
-  });
-
-  return defer({
-    shop,
-    primaryHero: hero,
-    // These different queries are separated to illustrate how 3rd party content
-    // fetching can be optimized for both above and below the fold.
-    featuredProducts: context.storefront.query<{
-      products: ProductConnection;
-    }>(HOMEPAGE_FEATURED_PRODUCTS_QUERY, {
-      variables: {
-        /**
-         * Country and language properties are automatically injected
-         * into all queries. Passing them is unnecessary unless you
-         * want to override them from the following default:
-         */
-        country,
-        language,
-      },
-    }),
-    secondaryHero: context.storefront.query<{hero: CollectionHero}>(
-      COLLECTION_HERO_QUERY,
-      {
-        variables: {
-          handle: 'backcountry',
-          country,
-          language,
-        },
-      },
-    ),
-    featuredCollections: context.storefront.query<{
-      collections: CollectionConnection;
-    }>(FEATURED_COLLECTIONS_QUERY, {
-      variables: {
-        country,
-        language,
-      },
-    }),
-    tertiaryHero: context.storefront.query<{hero: CollectionHero}>(
-      COLLECTION_HERO_QUERY,
-      {
-        variables: {
-          handle: 'winter-2022',
-          country,
-          language,
-        },
-      },
-    ),
-    analytics: {
-      pageType: AnalyticsPageType.home,
-    },
-  });
-}
-
-export default function Homepage() {
-  const {
-    primaryHero,
-    secondaryHero,
-    tertiaryHero,
-    featuredCollections,
-    featuredProducts,
-  } = useLoaderData<typeof loader>();
-
-  // TODO: skeletons vs placeholders
-  const skeletons = getHeroPlaceholder([{}, {}, {}]);
-
-  // TODO: analytics
-  // useServerAnalytics({
-  //   shopify: {
-  //     pageType: ShopifyAnalyticsConstants.pageType.home,
-  //   },
-  // });
+export default function () {
+  const {searchTerm, products, prices, noResultRecommendations} =
+    useLoaderData<typeof loader>();
+  const noResults = products?.nodes?.length === 0;
 
   return (
     <>
-      {primaryHero && (
-        <Hero {...primaryHero} height="full" top loading="eager" />
+      <header className="px-6 py-24 md:px-8 lg:px-12">
+        <Form method="get" className="relative flex w-full text-heading">
+          <Input
+            defaultValue={searchTerm}
+            placeholder="Search for a product…"
+            type="search"
+            variant="search"
+            name="q"
+          />
+          <button className="absolute right-0 py-2" type="submit">
+            Go
+          </button>
+        </Form>
+      </header>
+      {noResults && (
+        <>
+          <Section>
+            No matching products found. Please change your search and try again
+          </Section>
+        </>
       )}
-
-      {featuredProducts && (
-        <Suspense>
-          <Await resolve={featuredProducts}>
-            {({products}) => {
-              if (!products?.nodes) return <></>;
-              return (
-                <ProductSwimlane
-                  products={products.nodes}
-                  title="Featured Products"
-                  count={4}
-                />
-              );
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {secondaryHero && (
-        <Suspense fallback={<Hero {...skeletons[1]} />}>
-          <Await resolve={secondaryHero}>
-            {({hero}) => {
-              if (!hero) return <></>;
-              return <Hero {...hero} />;
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {featuredCollections && (
-        <Suspense>
-          <Await resolve={featuredCollections}>
-            {({collections}) => {
-              if (!collections?.nodes) return <></>;
-              return (
-                <FeaturedCollections
-                  collections={collections.nodes}
-                  title="Collections"
-                />
-              );
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {tertiaryHero && (
-        <Suspense fallback={<Hero {...skeletons[2]} />}>
-          <Await resolve={tertiaryHero}>
-            {({hero}) => {
-              if (!hero) return <></>;
-              return <Hero {...hero} />;
-            }}
-          </Await>
-        </Suspense>
+      {!searchTerm || noResults ? (
+        <Section>
+          {/* {noResults && (
+            <Section padding="x">
+              <Text className="opacity-50">
+                No results, try something else.
+              </Text>
+            </Section>
+          )}
+          <Suspense>
+            <Await
+              errorElement="There was a problem loading related products"
+              resolve={noResultRecommendations}
+            >
+              {(data) => (
+                <div className="flex flex-col gap-8 px-8 py-10 lg:px-12">
+                  <header>
+                    <Heading size="lead">Featured Products</Heading>
+                  </header>
+                  <section>
+                    {data?.featuredProducts &&
+                      data.featuredProducts.map((product) => (
+                        <ProductBulkOrderForm
+                          key={product.id}
+                          product={product}
+                          className="snap-start w-80"
+                        />
+                      ))}
+                  </section>
+                </div>
+              )}
+            </Await>
+          </Suspense> */}
+        </Section>
+      ) : (
+        <Section>
+          {products?.nodes &&
+            products?.nodes.map((product: Product) => (
+              <ProductBulkOrderForm
+                key={product.id}
+                product={product}
+                priceOverrides={prices}
+                className="snap-start"
+              />
+            ))}
+        </Section>
       )}
     </>
   );
 }
 
-const COLLECTION_CONTENT_FRAGMENT = `#graphql
-  ${MEDIA_FRAGMENT}
-  fragment CollectionContent on Collection {
+export async function loader({request, context}: LoaderArgs) {
+  const searchParams = new URL(request.url).searchParams;
+  const cursor = searchParams.get('cursor')!;
+  const searchTerm = searchParams.get('q')!;
+  const {storefront} = context;
+
+  const data = await storefront.query<{
+    products: ProductConnection;
+  }>(SEARCH_QUERY, {
+    variables: {
+      pageBy: PAGINATION_SIZE,
+      searchTerm,
+      cursor,
+      country: storefront.i18n.country,
+      language: storefront.i18n.language,
+    },
+  });
+  const {prices} = await fetchCustomerPricing(context);
+
+  invariant(data, 'No data returned from Shopify API');
+  const {products} = data;
+
+  const getRecommendations = !searchTerm || products?.nodes?.length === 0;
+
+  return defer({
+    searchTerm,
+    products,
+    prices,
+    noResultRecommendations: getRecommendations
+      ? getNoResultRecommendations(storefront)
+      : Promise.resolve(null),
+  });
+}
+
+const PRODUCT_BULK_ORDER_FORM_FRAGMENT = `#graphql
+  fragment ProductBulkOrderForm on Product {
     id
-    handle
     title
-    descriptionHtml
-    heading: metafield(namespace: "hero", key: "title") {
-      value
+    publishedAt
+    handle
+    priceRange {
+        minVariantPrice {
+            amount
+            currencyCode
+        }
+        maxVariantPrice {
+            amount
+            currencyCode
+        }
     }
-    byline: metafield(namespace: "hero", key: "byline") {
-      value
-    }
-    cta: metafield(namespace: "hero", key: "cta") {
-      value
-    }
-    spread: metafield(namespace: "hero", key: "spread") {
-      reference {
-        ...Media
-      }
-    }
-    spreadSecondary: metafield(namespace: "hero", key: "spread_secondary") {
-      reference {
-        ...Media
-      }
-    }
-  }
-`;
-
-const HOMEPAGE_SEO_QUERY = `#graphql
-  ${COLLECTION_CONTENT_FRAGMENT}
-  query collectionContent($handle: String, $country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    hero: collection(handle: $handle) {
-      ...CollectionContent
-    }
-    shop {
-      name
-      description
-    }
-  }
-`;
-
-const COLLECTION_HERO_QUERY = `#graphql
-  ${COLLECTION_CONTENT_FRAGMENT}
-  query collectionContent($handle: String, $country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    hero: collection(handle: $handle) {
-      ...CollectionContent
-    }
-  }
-`;
-
-// @see: https://shopify.dev/api/storefront/latest/queries/products
-export const HOMEPAGE_FEATURED_PRODUCTS_QUERY = `#graphql
-  ${PRODUCT_CARD_FRAGMENT}
-  query homepageFeaturedProducts($country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    products(first: 8) {
-      nodes {
-        ...ProductCard
-      }
-    }
-  }
-`;
-
-// @see: https://shopify.dev/api/storefront/latest/queries/collections
-export const FEATURED_COLLECTIONS_QUERY = `#graphql
-  query homepageFeaturedCollections($country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    collections(
-      first: 4,
-      sortKey: UPDATED_AT
-    ) {
+    variants(first: 100) {
       nodes {
         id
+        quantityAvailable
+        sku
         title
-        handle
         image {
+          url
           altText
           width
           height
-          url
         }
+        price {
+          amount
+          currencyCode
+        }
+        compareAtPrice {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+`;
+
+const SEARCH_QUERY = `#graphql
+  ${PRODUCT_BULK_ORDER_FORM_FRAGMENT}
+  query search(
+    $searchTerm: String
+    $country: CountryCode
+    $language: LanguageCode
+    $pageBy: Int!
+    $after: String
+  ) @inContext(country: $country, language: $language) {
+    products(
+      first: $pageBy
+      sortKey: RELEVANCE
+      query: $searchTerm
+      after: $after
+    ) {
+      nodes {
+        ...ProductBulkOrderForm
+      }
+      pageInfo {
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+      }
+    }
+  }
+`;
+
+export async function getNoResultRecommendations(
+  storefront: LoaderArgs['context']['storefront'],
+) {
+  const data = await storefront.query<{
+    featuredCollections: CollectionConnection;
+    featuredProducts: ProductConnection;
+  }>(SEARCH_NO_RESULTS_QUERY, {
+    variables: {
+      pageBy: PAGINATION_SIZE,
+      country: storefront.i18n.country,
+      language: storefront.i18n.language,
+    },
+  });
+
+  invariant(data, 'No data returned from Shopify API');
+
+  return {
+    featuredCollections: flattenConnection(data.featuredCollections),
+    featuredProducts: flattenConnection(data.featuredProducts),
+  };
+}
+
+const SEARCH_NO_RESULTS_QUERY = `#graphql
+  ${PRODUCT_BULK_ORDER_FORM_FRAGMENT}
+  query searchNoResult(
+    $country: CountryCode
+    $language: LanguageCode
+    $pageBy: Int!
+  ) @inContext(country: $country, language: $language) {
+    featuredProducts: products(first: $pageBy) {
+      nodes {
+        ...ProductBulkOrderForm
       }
     }
   }

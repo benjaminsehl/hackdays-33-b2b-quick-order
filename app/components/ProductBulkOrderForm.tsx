@@ -159,8 +159,9 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
                 merchandiseId: row.id,
               },
             ]}
+            disabled={!row.quantity}
             variant="secondary"
-            className="mt-2 transition focus:outline-none focus:border-primary"
+            className="mt-2 transition disabled:cursor-not-allowed focus:outline-none focus:border-primary"
           >
             <Text as="span" className="flex items-center justify-center gap-2">
               Add to Cart
@@ -464,13 +465,6 @@ export function ProductBulkOrderForm({
               loading={loading}
             />
           )}
-          <Text
-            as="label"
-            size="fine"
-            className="absolute top-0 right-0 m-4 text-right text-notice"
-          >
-            {cardLabel}
-          </Text>
         </div>
         <div className="grid items-center">
           <Text
