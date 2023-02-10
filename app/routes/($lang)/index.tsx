@@ -1,5 +1,4 @@
 import {Form, useLoaderData} from '@remix-run/react';
-import {flattenConnection} from '@shopify/hydrogen';
 import type {
   CollectionConnection,
   Product,
@@ -7,14 +6,12 @@ import type {
 } from '@shopify/hydrogen/storefront-api-types';
 import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
 import invariant from 'tiny-invariant';
-import {Input, Section} from '~/components';
+import {Button, Input, Pagination, Section} from '~/components';
 import {ProductBulkOrderForm} from '~/components/ProductBulkOrderForm';
-import {PAGINATION_SIZE} from '~/lib/const';
 import {fetchCustomerPricing} from '~/lib/fetchCustomerPricing';
 
 export default function () {
-  const {searchTerm, products, prices, noResultRecommendations} =
-    useLoaderData<typeof loader>();
+  const {searchTerm, products, prices} = useLoaderData<typeof loader>();
   const noResults = products?.nodes?.length === 0;
 
   return (
@@ -80,15 +77,73 @@ export default function () {
         </Section>
       ) : (
         <section className="flex flex-col w-full gap-4 border-none md:gap-8 md:p-8 lg:p-12">
-          {products?.nodes &&
-            products?.nodes.map((product: Product) => (
-              <ProductBulkOrderForm
-                key={product.id}
-                product={product}
-                priceOverrides={prices}
-                className="snap-start"
-              />
-            ))}
+          <Pagination connection={products}>
+            {({
+              endCursor,
+              hasNextPage,
+              hasPreviousPage,
+              nextPageUrl,
+              nodes,
+              prevPageUrl,
+              startCursor,
+              nextLinkRef,
+              isLoading,
+            }) => (
+              <>
+                {hasPreviousPage && (
+                  <div className="flex items-center justify-center mt-6">
+                    <Button
+                      to={prevPageUrl}
+                      variant="secondary"
+                      width="full"
+                      prefetch="intent"
+                      disabled={!isLoading}
+                      state={{
+                        pageInfo: {
+                          endCursor,
+                          hasNextPage,
+                          startCursor,
+                        },
+                        nodes,
+                      }}
+                    >
+                      {isLoading ? 'Loading...' : 'Previous products'}
+                    </Button>
+                  </div>
+                )}
+                {nodes.map((product: Product) => (
+                  <ProductBulkOrderForm
+                    key={product.id}
+                    product={product}
+                    priceOverrides={prices}
+                    className="snap-start"
+                  />
+                ))}
+                {hasNextPage && (
+                  <div className="flex items-center justify-center mt-6">
+                    <Button
+                      ref={nextLinkRef}
+                      to={nextPageUrl}
+                      variant="secondary"
+                      width="full"
+                      prefetch="intent"
+                      disabled={!isLoading}
+                      state={{
+                        pageInfo: {
+                          endCursor,
+                          hasPreviousPage,
+                          startCursor,
+                        },
+                        nodes,
+                      }}
+                    >
+                      {isLoading ? 'Loading...' : 'Next products'}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </Pagination>
         </section>
       )}
     </>
@@ -105,7 +160,7 @@ export async function loader({request, context}: LoaderArgs) {
     products: ProductConnection;
   }>(SEARCH_QUERY, {
     variables: {
-      pageBy: PAGINATION_SIZE,
+      pageBy: 100,
       searchTerm,
       cursor,
       country: storefront.i18n.country,
@@ -117,15 +172,10 @@ export async function loader({request, context}: LoaderArgs) {
   invariant(data, 'No data returned from Shopify API');
   const {products} = data;
 
-  const getRecommendations = !searchTerm || products?.nodes?.length === 0;
-
   return defer({
     searchTerm,
     products,
     prices,
-    noResultRecommendations: getRecommendations
-      ? getNoResultRecommendations(storefront)
-      : Promise.resolve(null),
   });
 }
 
@@ -193,43 +243,6 @@ const SEARCH_QUERY = `#graphql
         endCursor
         hasNextPage
         hasPreviousPage
-      }
-    }
-  }
-`;
-
-export async function getNoResultRecommendations(
-  storefront: LoaderArgs['context']['storefront'],
-) {
-  const data = await storefront.query<{
-    featuredCollections: CollectionConnection;
-    featuredProducts: ProductConnection;
-  }>(SEARCH_NO_RESULTS_QUERY, {
-    variables: {
-      pageBy: PAGINATION_SIZE,
-      country: storefront.i18n.country,
-      language: storefront.i18n.language,
-    },
-  });
-
-  invariant(data, 'No data returned from Shopify API');
-
-  return {
-    featuredCollections: flattenConnection(data.featuredCollections),
-    featuredProducts: flattenConnection(data.featuredProducts),
-  };
-}
-
-const SEARCH_NO_RESULTS_QUERY = `#graphql
-  ${PRODUCT_BULK_ORDER_FORM_FRAGMENT}
-  query searchNoResult(
-    $country: CountryCode
-    $language: LanguageCode
-    $pageBy: Int!
-  ) @inContext(country: $country, language: $language) {
-    featuredProducts: products(first: $pageBy) {
-      nodes {
-        ...ProductBulkOrderForm
       }
     }
   }

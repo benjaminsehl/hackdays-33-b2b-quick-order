@@ -236,7 +236,7 @@ function Table({data, setData}: {data: ProductVariant[]; setData: () => void}) {
           placeholder="Search variants..."
         />
       </div>
-      <div className="w-full px-6 overflow-x-scroll md:px-0 ">
+      <div className="w-full px-6 overflow-x-scroll lg:overflow-visible md:px-0 ">
         <table className="w-full min-w-max">
           <thead className="sticky top-0 z-30 h-12 border-b border-primary/20 bg-contrast/80 backdrop-blur-lg shadow-lightHeader">
             {table.getHeaderGroups().map((headerGroup) => (
